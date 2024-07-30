@@ -2,13 +2,17 @@ console.log('main.js is loaded'); // ファイルロード確認用のログ
 
 // シーン、カメラ、レンダラーのセットアップ
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+    43, window.innerWidth / window.innerHeight, 0.1, 1000
+);
+camera.position.z =5;
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('container').appendChild(renderer.domElement);
 
+renderer.setClearColor(0xfff2b9); 
 
-renderer.setClearColor(0xffffff, 1); 
+
 
 // OrbitControlsのセットアップ
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -17,37 +21,48 @@ controls.dampingFactor = 0.25;
 controls.screenSpacePanning = false;
 
 // 光源の追加
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 5, 5).normalize();
-scene.add(light);
+const ambientLight = new THREE.AmbientLight(0xf0f0f0);
+scene.add(ambientLight);
 
-// モデルを保持する変数
+const directionalLight = new THREE.DirectionalLight(0xffffff,0.5 ); // 1.5に増加
+directionalLight.position.set(2, 30, 0).normalize();
+scene.add(directionalLight);
+
 let originalModel;
 let newModel;
+const clickableObjects = []; // クリック可能なオブジェクトのリスト
+
+// オブジェクトの情報
+const objectInfo = {
+    'pin1': 'かき氷',
+    'pin2': 'ホットドッグ',
+    'pin3': '唐揚げ',
+    'pin4': 'わたあめ',
+    'pin5': 'クレープ',
+    'pin6': 'たこ焼き',
+    'pin7': 'アイスクリーム',
+};
 
 // GLTFモデルのロード
 const loader = new THREE.GLTFLoader();
 loader.load(
-    'models/test.glb',
+    'models/yatai.glb',
     function (gltf) {
         originalModel = gltf.scene;
         scene.add(originalModel);
         console.log('Original model loaded'); // ロード成功ログ
-    },
-    undefined,
-    function (error) {
-        console.error('An error happened', error);
-    }
-);
 
-loader.load(
-    'models/box.glb',
-    function (gltf) {
-        newModel = gltf.scene;
-        newModel.visible = false; // 最初は非表示に設定
-        
-        scene.add(newModel);
-        console.log('New model loaded'); // ロード成功ログ
+        // クリック可能なオブジェクトをリストに追加
+        const clickable = Object.keys(objectInfo); // クリック可能なオブジェクト名のリスト
+
+        clickable.forEach(name => {
+            const clickableObject = scene.getObjectByName(name);
+            if (clickableObject) {
+                clickableObjects.push(clickableObject);
+                console.log('Clickable object siroiyatsu', clickableObject);
+            }
+        });
+        button()
     },
     undefined,
     function (error) {
@@ -56,7 +71,9 @@ loader.load(
 );
 
 // カメラの位置
-camera.position.z = 5;
+camera.position.x = -80;
+camera.position.y = 35;
+camera.position.z = 0;
 
 // アニメーション対象のオブジェクト
 const animatedObjects = [];
@@ -87,7 +104,7 @@ function onMouseClick(event) {
 
     raycaster.setFromCamera(mouse, camera);
 
-    const intersects = raycaster.intersectObjects(scene.children, true);
+    const intersects = raycaster.intersectObjects(clickableObjects, true);
 
     if (intersects.length > 0) {
         console.log('モデルがクリックされました！');
@@ -95,22 +112,22 @@ function onMouseClick(event) {
         console.log('Intersected object:', intersectedObject);
 
         
-            revealNewModel(intersectedObject);
-       
+        showInfoBox(intersectedObject);
     }
+}
+    
+
+function showInfoBox(object) {
+    const infoBox = document.getElementById('infoBox');
+    const info = objectInfo[object.name] || '情報が見つかりません'; // オブジェクトの情報を取得
+        //ボタンのつけ方分からなくてモデル情報の中に移動ボタンある。ごめん
+    infoBox.innerHTML = `<strong>モデル名:</strong> ${object.name}<br><strong>情報:</strong><br> ${info}<br><button onclick="location.href='souzou.html'">移動</button>`;
+    infoBox.style.display = 'block';
 }
 
-function revealNewModel(object) {
-    if (newModel) {
-        newModel.position.set(object.position.x, object.position.y, object.position.z);
-        newModel.visible = true;
-        newModel.position.y = -0.13;
-        newModel.position.x = -0.3;
-        newModel.targetY = newModel.position.y + 0.4; // Y軸方向のスライド距離
-        animatedObjects.push(newModel);
-        console.log('New model revealed'); // 出現成功
-    }
-}
+
+
+
 
 window.addEventListener('click', onMouseClick);
 
